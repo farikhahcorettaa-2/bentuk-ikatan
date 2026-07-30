@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPI Kimia XI - Bentuk Molekul & Ikatan Antar Molekul</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js for 3D Molecule Rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                        },
+                        pinkish: '#ff6b8b',
+                        purpleish: '#8b5cf6',
+                        yellowish: '#f59e0b',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(135deg, #e0f2fe 0%, #f3e8ff 50%, #fce7f3 100%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #0284c7 0%, #7c3aed 50%, #db2777 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .gradient-btn {
+            background: linear-gradient(135deg, #0284c7 0%, #6366f1 100%);
+            transition: all 0.3s ease;
+        }
+        .gradient-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35);
+        }
+        .nav-item.active {
+            background: linear-gradient(135deg, #0284c7 0%, #6366f1 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+        }
+        canvas {
+            outline: none;
+            border-radius: 1rem;
+        }
+        .pulse-glow {
+            animation: pulseGlow 2s infinite alternate;
+        }
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 10px rgba(14, 165, 233, 0.4); }
+            100% { box-shadow: 0 0 25px rgba(168, 85, 247, 0.7); }
+        }
+    </style>
+</head>
+<body class="text-slate-800 flex flex-col min-h-screen">
+
+    <!-- HEADER NAVBAR -->
+    <header class="sticky top-0 z-50 px-4 py-3 bg-white/80 backdrop-blur-md border-b border-white/40 shadow-sm">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+            <!-- Logo & Title -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('beranda')">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-400 via-indigo-500 to-pink-500 p-0.5 shadow-md flex items-center justify-center">
+                    <div class="w-full h-full bg-white rounded-[14px] flex items-center justify-center font-extrabold text-xl text-indigo-600">
+                        ⚛️
+                    </div>
+                </div>
+                <div>
+                    <h1 class="text-lg md:text-xl font-black gradient-text leading-tight">CHEM-EXPLORE XI</h1>
+                    <p class="text-xs font-semibold text-slate-500">Bentuk Molekul & Ikatan Antar Molekul</p>
+                </div>
+            </div>
+
+            <!-- Author Badge -->
+            <div class="hidden md:flex items-center space-x-2 bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-300/60 px-3 py-1.5 rounded-full text-xs font-bold text-amber-900 shadow-sm">
+                <span>👩‍🏫 Penyusun:</span>
+                <span class="text-amber-800 font-extrabold">Farikhah Coretta, S.Pd.</span>
+            </div>
+
+            <!-- Audio & Theme Toggles -->
+            <div class="flex items-center space-x-2">
+                <button id="soundToggle" onclick="toggleSound()" class="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition font-medium text-xs flex items-center gap-1 shadow-inner">
+                    <span id="soundIcon">🔊</span> <span class="hidden sm:inline">Efek Suara</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- NAVIGATION TABS -->
+    <nav class="bg-white/60 backdrop-blur-md border-b border-slate-200/50 sticky top-[68px] z-40 px-2 py-2">
+        <div class="max-w-7xl mx-auto flex space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar py-1 text-xs md:text-sm font-bold">
+            <button onclick="switchTab('beranda')" id="tab-beranda" class="nav-item active px-4 py-2.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap">
+                🏠 Beranda
+            </button>
+            <button onclick="switchTab('teori')" id="tab-teori" class="nav-item px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 whitespace-nowrap">
+                📚 Teori VSEPR
+            </button>
+            <button onclick="switchTab('viewer3d')" id="tab-viewer3d" class="nav-item px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 whitespace-nowrap">
+                🔮 Lab Molekul 3D
+            </button>
+            <button onclick="switchTab('simulator')" id="tab-simulator" class="nav-item px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 whitespace-nowrap">
+                🧪 Simulator VSEPR
+            </button>
+            <button onclick="switchTab('kepolaran')" id="tab-kepolaran" class="nav-item px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 whitespace-nowrap">
+                🧲 Kepolaran
+            </button>
+            <button onclick="switchTab('ikatan')" id="tab-ikatan" class="nav-item px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 whitespace-nowrap">
+                🔗 Ikatan Intermolekul
+            </button>
+            <button onclick="switchTab('kuis')" id="tab-kuis" class="nav-item px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 whitespace-nowrap">
+                🏆 Kuis Interaktif
+            </button>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 space-y-8">
+
+        <!-- SECTION 1: BERANDA -->
+        <section id="sec-beranda" class="tab-content block space-y-6">
+            <!-- Hero Banner -->
+            <div class="glass-card rounded-3xl p-6 md:p-10 relative overflow-hidden bg-gradient-to-r from-sky-500/10 via-purple-500/10 to-pink-500/10 border border-white/80">
+                <div class="max-w-3xl space-y-4 relative z-10">
+                    <span class="inline-block px-3 py-1 bg-sky-500 text-white font-extrabold text-xs rounded-full uppercase tracking-wider shadow-sm">
+                        Media Pembelajaran Interaktif (MPI)
+                    </span>
+                    <h2 class="text-3xl md:text-5xl font-black text-slate-900 leading-tight">
+                        Jelajahi Dunia 3D <span class="gradient-text">Bentuk Molekul</span> & Interaksinya!
+                    </h2>
+                    <p class="text-slate-600 text-sm md:text-base leading-relaxed">
+                        Selamat datang di modul interaktif Kimia SMA Kelas XI. Di sini kamu bisa memvisualisasikan teori VSEPR, memutar molekul 3D secara langsung, merancang molekul impianmu, dan memahami mengapa air bisa membasahi bumi melalui gaya antar molekul!
+                    </p>
+                    <div class="flex flex-wrap gap-3 pt-2">
+                        <button onclick="switchTab('viewer3d')" class="gradient-btn text-white font-bold px-6 py-3 rounded-2xl shadow-lg flex items-center gap-2">
+                            <span>🚀 Mulai Eksplorasi 3D</span>
+                        </button>
+                        <button onclick="switchTab('kuis')" class="bg-white hover:bg-slate-50 text-indigo-600 font-bold px-6 py-3 rounded-2xl border border-indigo-200 shadow-sm transition">
+                            🎯 Uji Pemahaman
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="hidden lg:block absolute right-8 top-1/2 -translate-y-1/2 w-80 h-80 opacity-90 pointer-events-none">
+                    <div class="w-full h-full rounded-full bg-gradient-to-tr from-sky-400 to-indigo-500 flex items-center justify-center text-9xl pulse-glow">
+                        🧪
+                    </div>
+                </div>
+            </div>
+
+            <!-- Learning Objectives & Author Info Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Card 1: CP & TP -->
+                <div class="glass-card rounded-2xl p-6 border-l-4 border-l-sky-500 space-y-3">
+                    <div class="w-10 h-10 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center font-bold text-xl">
+                        🎯
+                    </div>
+                    <h3 class="font-bold text-lg text-slate-800">Capaian Pembelajaran</h3>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        Peserta didik mampu memprediksi bentuk molekul berdasarkan teori VSEPR/Domain Elektron dan menghubungkannya dengan sifat kepolaran serta ikatan antar molekul.
+                    </p>
+                </div>
+
+                <!-- Card 2: Interactive Features -->
+                <div class="glass-card rounded-2xl p-6 border-l-4 border-l-purple-500 space-y-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-xl">
+                        💡
+                    </div>
+                    <h3 class="font-bold text-lg text-slate-800">Fitur Unggulan</h3>
+                    <ul class="text-xs text-slate-600 space-y-1.5 list-disc list-inside">
+                        <li>Model Molekul 3D yang dapat diputar 360°</li>
+                        <li>Simulator Pasangan Elektron (PEI & PEB)</li>
+                        <li>Penjelasan Visual Kepolaran & Dipol</li>
+                        <li>Kuis dengan umpan balik & skor instan</li>
+                    </ul>
+                </div>
+
+                <!-- Card 3: Profil Penyusun -->
+                <div class="glass-card rounded-2xl p-6 border-l-4 border-l-pink-500 space-y-3 bg-gradient-to-br from-white to-pink-50/50">
+                    <div class="w-10 h-10 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center font-bold text-xl">
+                        👩‍🏫
+                    </div>
+                    <h3 class="font-bold text-lg text-slate-800">Identitas Penyusun</h3>
+                    <div class="space-y-1 text-xs text-slate-700">
+                        <p class="font-extrabold text-slate-900 text-sm">Farikhah Coretta, S.Pd.</p>
+                        <p class="text-slate-500">Guru Kimia SMA Kelas XI</p>
+                        <div class="pt-2">
+                            <span class="px-2.5 py-1 bg-pink-100 text-pink-700 font-bold rounded-lg text-[11px]">
+                                Modul Kurikulum Merdeka
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: TEORI VSEPR -->
+        <section id="sec-teori" class="tab-content hidden space-y-6">
+            <div class="glass-card rounded-3xl p-6 md:p-8 space-y-6">
+                <div class="border-b border-slate-200/80 pb-4">
+                    <span class="text-xs font-bold text-sky-600 uppercase tracking-wider">Konsep Dasar</span>
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900">Teori VSEPR & Domain Elektron</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4 text-sm text-slate-700 leading-relaxed">
+                        <p>
+                            Teori <strong class="text-indigo-600">VSEPR</strong> (<em>Valence Shell Electron Pair Repulsion</em>) menyatakan bahwa pasangan elektron di sekitar atom pusat akan saling **tolak-menolak** sehingga mengambil posisi sejauh mungkin untuk meminimalkan tolakan tersebut.
+                        </p>
+                        <div class="p-4 bg-amber-50 rounded-2xl border border-amber-200 space-y-2">
+                            <h4 class="font-bold text-amber-900 text-sm">📌 Rumus Umum Molekul:</h4>
+                            <div class="text-center font-mono font-black text-2xl text-amber-800 py-1 bg-white rounded-xl shadow-inner border border-amber-200">
+                                AX<sub class="text-sm">n</sub>E<sub class="text-sm">m</sub>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 text-center text-xs pt-1">
+                                <div><strong class="text-amber-900">A:</strong> Atom Pusat</div>
+                                <div><strong class="text-amber-900">X:</strong> PEI (Ikatan)</div>
+                                <div><strong class="text-amber-900">E:</strong> PEB (Bebas)</div>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-sky-50 rounded-2xl border border-sky-200">
+                            <h4 class="font-bold text-sky-900 text-sm mb-1">⚡ Kekuatan Tolakan Elektron:</h4>
+                            <p class="text-xs text-sky-800 font-semibold">
+                                PEB – PEB &gt; PEB – PEI &gt; PEI – PEI
+                            </p>
+                            <p class="text-xs text-slate-600 mt-1">
+                                Keberadaan Pasangan Elektron Bebas (PEB) menekan sudut ikatan sehingga bentuk molekul menjadi lebih sempit!
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Summary Geometry Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-left text-slate-700 bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200">
+                            <thead class="bg-indigo-600 text-white font-bold uppercase">
+                                <tr>
+                                    <th class="p-3">PEI (n)</th>
+                                    <th class="p-3">PEB (m)</th>
+                                    <th class="p-3">Rumus</th>
+                                    <th class="p-3">Bentuk Molekul</th>
+                                    <th class="p-3">Contoh</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 font-medium">
+                                <tr class="hover:bg-slate-50">
+                                    <td class="p-3 font-bold">2</td>
+                                    <td class="p-3">0</td>
+                                    <td class="p-3 font-mono text-indigo-600 font-bold">AX₂</td>
+                                    <td class="p-3">Linear (180°)</td>
+                                    <td class="p-3 font-bold">CO₂, BeCl₂</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="p-3 font-bold">3</td>
+                                    <td class="p-3">0</td>
+                                    <td class="p-3 font-mono text-indigo-600 font-bold">AX₃</td>
+                                    <td class="p-3">Trigonal Planar (120°)</td>
+                                    <td class="p-3 font-bold">BF₃, BCl₃</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="p-3 font-bold">2</td>
+                                    <td class="p-3">1</td>
+                                    <td class="p-3 font-mono text-indigo-600 font-bold">AX₂E</td>
+                                    <td class="p-3">Bengkok / V (&lt;120°)</td>
+                                    <td class="p-3 font-bold">SO₂</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="p-3 font-bold">4</td>
+                                    <td class="p-3">0</td>
+                                    <td class="p-3 font-mono text-indigo-600 font-bold">AX₄</td>
+                                    <td class="p-3">Tetrahedral (109.5°)</td>
+                                    <td class="p-3 font-bold">CH₄, CCl₄</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="p-3 font-bold">3</td>
+                                    <td class="p-3">1</td>
+                                    <td class="p-3 font-mono text-indigo-600 font-bold">AX₃E</td>
+                                    <td class="p-3">Trigonal Piramida (107°)</td>
+                                    <td class="p-3 font-bold">NH₃</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="p-3 font-bold">2</td>
+                                    <td class="p-3">2</td>
+                                    <td class="p-3 font-mono text-indigo-600 font-bold">AX₂E₂</td>
+                                    <td class="p-3">Bengkok / V (104.5°)</td>
+                                    <td class="p-3 font-bold">H₂O</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="p-3 font-bold">5</td>
+                                    <td class="p-3">0</td>
+                                    <td class="p-3 font-mono text-indigo-600 font-bold">AX₅</td>
+                                    <td class="p-3">Trigonal Bipiramida</td>
+                                    <td class="p-3 font-bold">PCl₅</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="p-3 font-bold">6</td>
+                                    <td class="p-3">0</td>
+                                    <td class="p-3 font-mono text-indigo-600 font-bold">AX₆</td>
+                                    <td class="p-3">Oktahedral (90°)</td>
+                                    <td class="p-3 font-bold">SF₆</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: VISUALISATOR 3D MOLEKUL -->
+        <section id="sec-viewer3d" class="tab-content hidden space-y-6">
+            <div class="glass-card rounded-3xl p-6 border border-white/80">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
+                    <div>
+                        <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider">Interaktif 3D</span>
+                        <h2 class="text-2xl font-extrabold text-slate-900">Lab Visualisator Molekul 3D</h2>
+                        <p class="text-xs text-slate-500">Klik dan tahan mouse / sentuh layar untuk memutar molekul 360°</p>
+                    </div>
+
+                    <!-- Molecule Selector -->
+                    <div class="flex items-center gap-2">
+                        <label for="molSelect" class="text-xs font-bold text-slate-700 whitespace-nowrap">Pilih Molekul:</label>
+                        <select id="molSelect" onchange="loadSelectedMolecule()" class="bg-white border border-indigo-300 font-bold text-indigo-900 text-sm rounded-xl px-4 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="CO2">CO₂ - Karbon Dioksida (Linear)</option>
+                            <option value="BF3">BF₃ - Boron Trifluorida (Trigonal Planar)</option>
+                            <option value="CH4" selected>CH₄ - Metana (Tetrahedral)</option>
+                            <option value="NH3">NH₃ - Amonia (Trigonal Piramida)</option>
+                            <option value="H2O">H₂O - Air (Bengkok / Bent)</option>
+                            <option value="PCl5">PCl₅ - Fosfor Pentaklorida (Trigonal Bipiramida)</option>
+                            <option value="SF6">SF₆ - Sulfur Heksafluorida (Oktahedral)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">
+                    <!-- 3D Canvas Area -->
+                    <div class="lg:col-span-2 relative bg-slate-900 rounded-2xl overflow-hidden shadow-inner h-[380px] md:h-[450px] flex items-center justify-center">
+                        <div id="canvas3dContainer" class="w-full h-full"></div>
+                        
+                        <!-- Overlay Controls -->
+                        <div class="absolute bottom-3 left-3 bg-slate-800/80 backdrop-blur-md border border-slate-700 text-white p-2.5 rounded-xl text-xs flex items-center gap-3">
+                            <label class="flex items-center gap-1.5 cursor-pointer">
+                                <input type="checkbox" id="togglePEB" checked onchange="togglePEBVisibility()" class="rounded text-sky-500">
+                                <span>Tampilkan PEB (Awan Elektron)</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer">
+                                <input type="checkbox" id="toggleRotate" checked onchange="toggleAutoRotation()" class="rounded text-sky-500">
+                                <span>Rotasi Otomatis</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Molecule Details Panel -->
+                    <div class="glass-card rounded-2xl p-5 space-y-4 flex flex-col justify-between bg-white/90">
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <h3 id="molName" class="text-xl font-extrabold text-indigo-900">CH₄ (Metana)</h3>
+                                <span id="molFormula" class="px-3 py-1 bg-indigo-100 text-indigo-700 font-mono font-bold text-xs rounded-full">AX₄</span>
+                            </div>
+
+                            <div class="p-3 bg-indigo-50/60 rounded-xl space-y-2 border border-indigo-100 text-xs">
+                                <div class="flex justify-between">
+                                    <span class="text-slate-600">Bentuk Molekul:</span>
+                                    <strong id="molShape" class="text-indigo-900 font-bold">Tetrahedral</strong>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-600">Sudut Ikatan:</span>
+                                    <strong id="molAngle" class="text-indigo-900 font-bold">109.5°</strong>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-600">PEI (Ikatan):</span>
+                                    <strong id="molPEI" class="text-emerald-600 font-bold">4 Pasang</strong>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-600">PEB (Bebas):</span>
+                                    <strong id="molPEB" class="text-rose-500 font-bold">0 Pasang</strong>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-600">Kepolaran:</span>
+                                    <strong id="molPolarity" class="text-sky-600 font-bold">Nonpolar</strong>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 class="font-bold text-xs text-slate-800 uppercase mb-1">💡 Penjelasan Singkat:</h4>
+                                <p id="molDesc" class="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-200">
+                                    Metana memiliki 4 pasang elektron ikatan tanpa elektron bebas pada atom C. Keempat ikatan C-H saling menolak secara seimbang membentuk sudut 109.5°.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Legend -->
+                        <div class="pt-3 border-t border-slate-200 text-[11px] text-slate-500 flex flex-wrap gap-2">
+                            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-slate-700 inline-block"></span> Atom Pusat</span>
+                            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-sky-400 inline-block"></span> Atom Ligan</span>
+                            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-rose-400 inline-block"></span> PEB (Lobe)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: SIMULATOR VSEPR -->
+        <section id="sec-simulator" class="tab-content hidden space-y-6">
+            <div class="glass-card rounded-3xl p-6 border border-white/80 space-y-6">
+                <div class="border-b border-slate-200/80 pb-4">
+                    <span class="text-xs font-bold text-emerald-600 uppercase tracking-wider">Eksperimen Mandiri</span>
+                    <h2 class="text-2xl font-extrabold text-slate-900">Lab Simulator Bentuk Molekul VSEPR</h2>
+                    <p class="text-xs text-slate-500">Ubah jumlah Pasangan Elektron Ikatan (PEI) dan Bebas (PEB) untuk melihat prediksi bentuk molekulnya!</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <!-- Controls -->
+                    <div class="space-y-6 bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                        <!-- PEI Control -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center">
+                                <label class="font-bold text-slate-800 text-sm">Jumlah PEI (Ikatan - X):</label>
+                                <span id="simPEIVal" class="text-lg font-black text-emerald-600 bg-emerald-100 px-3 py-0.5 rounded-lg">2</span>
+                            </div>
+                            <input type="range" id="simPEIRange" min="2" max="6" value="2" oninput="updateSimulator()" class="w-full accent-emerald-600 cursor-pointer">
+                        </div>
+
+                        <!-- PEB Control -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center">
+                                <label class="font-bold text-slate-800 text-sm">Jumlah PEB (Bebas - E):</label>
+                                <span id="simPEBVal" class="text-lg font-black text-rose-600 bg-rose-100 px-3 py-0.5 rounded-lg">0</span>
+                            </div>
+                            <input type="range" id="simPEBRange" min="0" max="3" value="0" oninput="updateSimulator()" class="w-full accent-rose-600 cursor-pointer">
+                        </div>
+
+                        <!-- Summary Output Card -->
+                        <div class="p-4 bg-white rounded-xl shadow-sm border border-slate-200 space-y-3">
+                            <div class="flex items-center justify-between border-b pb-2">
+                                <span class="text-xs font-bold text-slate-500">RUMUS MOLEKUL:</span>
+                                <span id="simFormula" class="text-xl font-mono font-black text-indigo-600">AX₂</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-500">GEOMETRI MOLEKUL:</span>
+                                <span id="simGeometry" class="text-sm font-extrabold text-slate-800">Linear</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-500">SUDUT IKATAN IDEAL:</span>
+                                <span id="simAngle" class="text-xs font-bold text-sky-600">180°</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Visual Representation -->
+                    <div class="flex flex-col items-center justify-center p-6 bg-gradient-to-b from-indigo-900 to-slate-900 rounded-2xl min-h-[280px] shadow-lg text-white space-y-4">
+                        <div id="sim2dVisual" class="w-48 h-48 relative flex items-center justify-center">
+                            <!-- SVG Dynamic Molecular Projection -->
+                            <svg id="simSvg" viewBox="0 0 200 200" class="w-full h-full drop-shadow-md">
+                                <!-- Dynamic JS SVG content rendered here -->
+                            </svg>
+                        </div>
+                        <div class="text-center space-y-1">
+                            <p class="text-xs text-slate-300">Bentuk Molekul Terprediksi:</p>
+                            <h3 id="simResultTitle" class="text-lg font-black text-sky-400">Linear (AX₂)</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: KEPOLARAN MOLEKUL -->
+        <section id="sec-kepolaran" class="tab-content hidden space-y-6">
+            <div class="glass-card rounded-3xl p-6 md:p-8 space-y-6">
+                <div class="border-b border-slate-200/80 pb-4">
+                    <span class="text-xs font-bold text-purple-600 uppercase tracking-wider">Sifat Fisis</span>
+                    <h2 class="text-2xl font-extrabold text-slate-900">Kepolaran Molekul (Polar vs Nonpolar)</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Polar Card -->
+                    <div class="bg-gradient-to-br from-rose-50 to-pink-50 p-6 rounded-2xl border border-pink-200 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xl font-bold text-rose-900">1. Molekul Polar</h3>
+                            <span class="text-2xl">💧</span>
+                        </div>
+                        <ul class="text-xs text-slate-700 space-y-2 list-disc list-inside">
+                            <li>Bentuk molekul <strong>asimetris</strong> (tidak simetris).</li>
+                            <li>Memiliki <strong>Pasangan Elektron Bebas (PEB)</strong> pada atom pusat (misal: $H_2O, NH_3$).</li>
+                            <li>Momen Dipol ($\mu$) &gt; 0.</li>
+                            <li>Terjadi pengutuban muatan ($\delta^+$ dan $\delta^-$).</li>
+                        </ul>
+                        <div class="bg-white p-3 rounded-xl border border-pink-200 text-center">
+                            <p class="text-xs font-bold text-rose-800">Contoh Klasik: H₂O (Air)</p>
+                            <p class="text-[11px] text-slate-500">Atom O lebih elektronegatif menarik elektron dari H, bentuk bengkok menyebabkan momen dipol tidak saling meniadakan.</p>
+                        </div>
+                    </div>
+
+                    <!-- Nonpolar Card -->
+                    <div class="bg-gradient-to-br from-sky-50 to-blue-50 p-6 rounded-2xl border border-sky-200 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xl font-bold text-sky-900">2. Molekul Nonpolar</h3>
+                            <span class="text-2xl">🎈</span>
+                        </div>
+                        <ul class="text-xs text-slate-700 space-y-2 list-disc list-inside">
+                            <li>Bentuk molekul <strong>simetris</strong>.</li>
+                            <li>Tidak memiliki PEB pada atom pusat (atau PEB tersebar simetris seperti pada $XeF_4$).</li>
+                            <li>Momen Dipol ($\mu$) = 0.</li>
+                            <li>Muatan tersebar merata tanpa pengutuban.</li>
+                        </ul>
+                        <div class="bg-white p-3 rounded-xl border border-sky-200 text-center">
+                            <p class="text-xs font-bold text-sky-800">Contoh Klasik: CO₂ & CH₄</p>
+                            <p class="text-[11px] text-slate-500">Pada CO₂ (linear), dipol C=O ke kiri dan kanan saling menghilangkan ($\mu = 0$).</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 6: IKATAN ANTAR MOLEKUL -->
+        <section id="sec-ikatan" class="tab-content hidden space-y-6">
+            <div class="glass-card rounded-3xl p-6 md:p-8 space-y-6">
+                <div class="border-b border-slate-200/80 pb-4">
+                    <span class="text-xs font-bold text-amber-600 uppercase tracking-wider">Interaksi Fisika-Kimia</span>
+                    <h2 class="text-2xl font-extrabold text-slate-900">Ikatan & Gaya Antar Molekul</h2>
+                    <p class="text-xs text-slate-500">Gaya tarik-menarik antar molekul yang menentukan titik didih, titik leleh, dan wujud zat.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Gaya London -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-3 shadow-sm hover:shadow-md transition">
+                        <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-lg">
+                            💨
+                        </div>
+                        <h3 class="font-extrabold text-slate-900 text-base">1. Gaya Dispersi London</h3>
+                        <span class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-[10px] font-bold">Molekul Nonpolar</span>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Gaya tarik relatif lemah akibat **dipol sesaat** karena pergerakan acak elektron. Makin besar Mr molekul, makin kuat gaya Londonnya.
+                        </p>
+                        <p class="text-xs font-semibold text-amber-900">Contoh: O₂, N₂, CH₄, H₂</p>
+                    </div>
+
+                    <!-- Gaya Dipol-Dipol -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-3 shadow-sm hover:shadow-md transition">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-lg">
+                            🧲
+                        </div>
+                        <h3 class="font-extrabold text-slate-900 text-base">2. Gaya Dipol - Dipol</h3>
+                        <span class="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded text-[10px] font-bold">Molekul Polar</span>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Gaya tarik elektrostatik antara kutub positif ($\delta^+$) satu molekul polar dengan kutub negatif ($\delta^-$) molekul polar lainnya.
+                        </p>
+                        <p class="text-xs font-semibold text-indigo-900">Contoh: HCl, HBr, SO₂</p>
+                    </div>
+
+                    <!-- Ikatan Hidrogen -->
+                    <div class="bg-white p-5 rounded-2xl border border-purple-300 space-y-3 shadow-sm hover:shadow-md transition bg-gradient-to-b from-purple-50/50 to-white">
+                        <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-lg">
+                            💎
+                        </div>
+                        <h3 class="font-extrabold text-purple-900 text-base">3. Ikatan Hidrogen</h3>
+                        <span class="px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-[10px] font-bold">Paling Kuat!</span>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Ikatan khusus yang terjadi antara atom **H** yang terikat pada atom sangat elektronegatif (**F, O, N**).
+                        </p>
+                        <div class="p-2 bg-purple-100/60 rounded-lg text-center font-bold text-purple-900 text-xs">
+                            Kunci Ingatan: "FON" (F - O - N)
+                        </div>
+                        <p class="text-xs font-semibold text-purple-900">Contoh: H₂O, HF, NH₃</p>
+                    </div>
+                </div>
+
+                <!-- Anomaly Chart Explanation -->
+                <div class="p-5 bg-sky-50/80 rounded-2xl border border-sky-200 space-y-3">
+                    <h4 class="font-bold text-sky-900 text-sm flex items-center gap-2">
+                        <span>🧪 Keunikan Titik Didih Air (H₂O):</span>
+                    </h4>
+                    <p class="text-xs text-slate-700 leading-relaxed">
+                        Meskipun Mr $H_2O$ lebih kecil dari $H_2S$, air memiliki titik didih jauh lebih tinggi (100°C vs -60°C) karena tingginya jumlah **Ikatan Hidrogen** antar molekul air!
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 7: KUIS INTERAKTIF -->
+        <section id="sec-kuis" class="tab-content hidden space-y-6">
+            <div class="glass-card rounded-3xl p-6 md:p-8 space-y-6">
+                <!-- Quiz Header -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
+                    <div>
+                        <span class="text-xs font-bold text-rose-600 uppercase tracking-wider">Evaluasi Pemahaman</span>
+                        <h2 class="text-2xl font-extrabold text-slate-900">Kuis Interaktif Kimia XI</h2>
+                        <p class="text-xs text-slate-500">Jawab pertanyaan dengan cermat untuk menguji tingkat penguasaan materimu!</p>
+                    </div>
+                    <div class="flex items-center gap-4 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="text-center">
+                            <span class="text-[10px] text-slate-400 font-bold block uppercase">Skor Saya</span>
+                            <span id="quizScore" class="text-xl font-black text-emerald-600">0</span>
+                        </div>
+                        <div class="h-8 w-px bg-slate-200"></div>
+                        <div class="text-center">
+                            <span class="text-[10px] text-slate-400 font-bold block uppercase">Soal</span>
+                            <span id="quizProgress" class="text-xl font-black text-indigo-600">1 / 5</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quiz Container -->
+                <div id="quizBox" class="space-y-6 max-w-3xl mx-auto">
+                    <!-- Question Title -->
+                    <div class="p-5 bg-indigo-50/70 rounded-2xl border border-indigo-100">
+                        <h3 id="quizQuestion" class="text-base md:text-lg font-bold text-slate-800 leading-snug">
+                            Loading pertanyaan...
+                        </h3>
+                    </div>
+
+                    <!-- Options -->
+                    <div id="quizOptions" class="grid grid-cols-1 gap-3">
+                        <!-- Rendered by JS -->
+                    </div>
+
+                    <!-- Feedback Box -->
+                    <div id="quizFeedback" class="hidden p-4 rounded-2xl text-xs font-semibold space-y-1">
+                        <!-- Dynamic Feedback -->
+                    </div>
+
+                    <!-- Next Button -->
+                    <div class="flex justify-end">
+                        <button id="nextBtn" onclick="nextQuestion()" class="hidden gradient-btn text-white font-bold px-6 py-3 rounded-xl text-sm shadow-md">
+                            Soal Berikutnya ➔
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quiz Complete Result Screen -->
+                <div id="quizResultScreen" class="hidden text-center py-10 space-y-4 max-w-md mx-auto">
+                    <div class="w-24 h-24 mx-auto rounded-full bg-gradient-to-tr from-amber-400 to-pink-500 flex items-center justify-center text-5xl shadow-lg">
+                        🏆
+                    </div>
+                    <h3 class="text-2xl font-black text-slate-900">Kuis Selesai!</h3>
+                    <p id="resultFeedback" class="text-sm text-slate-600">Kerja bagus dalam menyelesaikan evaluasi ini!</p>
+                    <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                        <span class="text-xs text-slate-400 font-bold uppercase block">Skor Akhir Kamu:</span>
+                        <span id="finalScoreVal" class="text-4xl font-black text-indigo-600">100</span>
+                    </div>
+                    <button onclick="restartQuiz()" class="gradient-btn text-white font-bold px-8 py-3 rounded-2xl text-sm shadow-md inline-block">
+                        🔄 Ulangi Kuis
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-white/70 backdrop-blur-md border-t border-slate-200/60 py-6 text-center text-xs text-slate-500 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 space-y-2">
+            <p class="font-bold text-slate-700">
+                Multimedia Pembelajaran Interaktif (MPI) Bentuk Molekul & Ikatan Antar Molekul
+            </p>
+            <p>
+                Disusun oleh: <strong class="text-indigo-600 font-bold">Farikhah Coretta, S.Pd.</strong> | Kimia SMA Kelas XI
+            </p>
+            <p class="text-[10px] text-slate-400">
+                © 2026 CHEM-EXPLORE XI. Didesain untuk kemudahan belajar siswa SMA.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Global Audio Context for Sound Effects
+        let soundEnabled = true;
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(freq = 440, type = 'sine', duration = 0.15) {
+            if (!soundEnabled) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch(e) { console.log(e); }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundIcon').innerText = soundEnabled ? '🔊' : '🔇';
+        }
+
+        // Tab Switching Logic
+        function switchTab(tabId) {
+            playSound(520, 'sine', 0.1);
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+            const targetSec = document.getElementById(`sec-${tabId}`);
+            const targetTab = document.getElementById(`tab-${tabId}`);
+
+            if (targetSec) targetSec.classList.remove('hidden');
+            if (targetTab) targetTab.classList.add('active');
+
+            // Trigger ThreeJS resize if viewing 3D tab
+            if (tabId === 'viewer3d') {
+                setTimeout(() => {
+                    onWindowResize();
+                }, 100);
+            }
+        }
+
+        /* ---------------------------------------------------
+           THREE.JS 3D MOLECULE VIEWER ENGINE
+        --------------------------------------------------- */
+        let scene, camera, renderer, moleculeGroup;
+        let isAutoRotate = true;
+        let showPEB = true;
+
+        const MOLECULES_DATA = {
+            CH4: {
+                name: "CH₄ (Metana)",
+                formula: "AX₄",
+                shape: "Tetrahedral",
+                angle: "109.5°",
+                pei: "4 Pasang",
+                peb: "0 Pasang",
+                polarity: "Nonpolar",
+                desc: "Molekul metana memiliki 4 pasang elektron ikatan tanpa elektron bebas pada atom C. Simetris sempurna.",
+                centerColor: 0x334155, // Carbon (dark slate)
+                ligandColor: 0x38bdf8, // Hydrogen (light blue)
+                ligands: [
+                    [1, 1, 1],
+                    [-1, -1, 1],
+                    [-1, 1, -1],
+                    [1, -1, -1]
+                ],
+                pebs: []
+            },
+            CO2: {
+                name: "CO₂ (Karbon Dioksida)",
+                formula: "AX₂",
+                shape: "Linear",
+                angle: "180°",
+                pei: "2 Pasang (Rangkap 2)",
+                peb: "0 Pasang",
+                polarity: "Nonpolar",
+                desc: "Molekul linear simetris. Momen dipol ikatan C=O saling meniadakan sehingga molekul bersifat nonpolar.",
+                centerColor: 0x334155,
+                ligandColor: 0xf43f5e, // Oxygen (red)
+                ligands: [
+                    [1.8, 0, 0],
+                    [-1.8, 0, 0]
+                ],
+                pebs: []
+            },
+            BF3: {
+                name: "BF₃ (Boron Trifluorida)",
+                formula: "AX₃",
+                shape: "Trigonal Planar",
+                angle: "120°",
+                pei: "3 Pasang",
+                peb: "0 Pasang",
+                polarity: "Nonpolar",
+                desc: "Atom B dikelilingi 3 ikatan F dalam satu bidang datar dengan sudut 120°.",
+                centerColor: 0xa855f7,
+                ligandColor: 0x10b981,
+                ligands: [
+                    [0, 1.8, 0],
+                    [1.55, -0.9, 0],
+                    [-1.55, -0.9, 0]
+                ],
+                pebs: []
+            },
+            NH3: {
+                name: "NH₃ (Amonia)",
+                formula: "AX₃E",
+                shape: "Trigonal Piramida",
+                angle: "107°",
+                pei: "3 Pasang",
+                peb: "1 Pasang",
+                polarity: "Polar",
+                desc: "Adanya 1 PEB di puncaknya menekan ikatan N-H ke bawah sehingga sudut ikatan berkurang dari 109.5° menjadi 107°.",
+                centerColor: 0x4f46e5, // Nitrogen
+                ligandColor: 0x38bdf8,
+                ligands: [
+                    [0, -0.6, 1.4],
+                    [1.2, -0.6, -0.7],
+                    [-1.2, -0.6, -0.7]
+                ],
+                pebs: [
+                    [0, 1.5, 0]
+                ]
+            },
+            H2O: {
+                name: "H₂O (Air)",
+                formula: "AX₂E₂",
+                shape: "Bengkok / V",
+                angle: "104.5°",
+                pei: "2 Pasang",
+                peb: "2 Pasang",
+                polarity: "Polar",
+                desc: "Dua PEB pada atom oksigen memberikan tolakan paling kuat, menekan ikatan O-H hingga membentuk sudut 104.5°.",
+                centerColor: 0xf43f5e, // Oxygen
+                ligandColor: 0x38bdf8,
+                ligands: [
+                    [1.2, -0.8, 0],
+                    [-1.2, -0.8, 0]
+                ],
+                pebs: [
+                    [0.8, 1.2, 0.5],
+                    [-0.8, 1.2, -0.5]
+                ]
+            },
+            PCl5: {
+                name: "PCl₅ (Fosfor Pentaklorida)",
+                formula: "AX₅",
+                shape: "Trigonal Bipiramida",
+                angle: "90° & 120°",
+                pei: "5 Pasang",
+                peb: "0 Pasang",
+                polarity: "Nonpolar",
+                desc: "Memiliki 3 posisi ekuatorial (sudut 120°) dan 2 posisi aksial (sudut 90° terhadap bidang).",
+                centerColor: 0xf59e0b, // Phosphorus
+                ligandColor: 0x10b981, // Chlorine
+                ligands: [
+                    [0, 2, 0],
+                    [0, -2, 0],
+                    [1.6, 0, 0],
+                    [-0.8, 0, 1.38],
+                    [-0.8, 0, -1.38]
+                ],
+                pebs: []
+            },
+            SF6: {
+                name: "SF₆ (Sulfur Heksafluorida)",
+                formula: "AX₆",
+                shape: "Oktahedral",
+                angle: "90°",
+                pei: "6 Pasang",
+                peb: "0 Pasang",
+                polarity: "Nonpolar",
+                desc: "Enam atom F mengelilingi atom pusat S dengan sudut tegak lurus 90° satu sama lain.",
+                centerColor: 0xeab308,
+                ligandColor: 0x06b6d4,
+                ligands: [
+                    [1.7, 0, 0],
+                    [-1.7, 0, 0],
+                    [0, 1.7, 0],
+                    [0, -1.7, 0],
+                    [0, 0, 1.7],
+                    [0, 0, -1.7]
+                ],
+                pebs: []
+            }
+        };
+
+        function init3D() {
+            const container = document.getElementById('canvas3dContainer');
+            if (!container) return;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a);
+
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 0, 7);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 10, 7);
+            scene.add(dirLight);
+
+            moleculeGroup = new THREE.Group();
+            scene.add(moleculeGroup);
+
+            // Mouse Drag Control Logic
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+
+            const canvasEl = renderer.domElement;
+            canvasEl.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            canvasEl.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const deltaMove = {
+                    x: e.clientX - previousMousePosition.x,
+                    y: e.clientY - previousMousePosition.y
+                };
+
+                moleculeGroup.rotation.y += deltaMove.x * 0.01;
+                moleculeGroup.rotation.x += deltaMove.y * 0.01;
+
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            window.addEventListener('mouseup', () => { isDragging = false; });
+
+            // Touch events for mobile
+            canvasEl.addEventListener('touchstart', (e) => {
+                if(e.touches.length === 1) {
+                    isDragging = true;
+                    previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }
+            });
+
+            canvasEl.addEventListener('touchmove', (e) => {
+                if (!isDragging || e.touches.length !== 1) return;
+                const deltaMove = {
+                    x: e.touches[0].clientX - previousMousePosition.x,
+                    y: e.touches[0].clientY - previousMousePosition.y
+                };
+                moleculeGroup.rotation.y += deltaMove.x * 0.01;
+                moleculeGroup.rotation.x += deltaMove.y * 0.01;
+                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            });
+
+            canvasEl.addEventListener('touchend', () => { isDragging = false; });
+
+            loadSelectedMolecule();
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (isAutoRotate && moleculeGroup) {
+                moleculeGroup.rotation.y += 0.006;
+            }
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas3dContainer');
+            if (!container || !renderer || !camera) return;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        window.addEventListener('resize', onWindowResize);
+
+        function loadSelectedMolecule() {
+            const key = document.getElementById('molSelect').value;
+            const data = MOLECULES_DATA[key];
+            if (!data) return;
+
+            // Clear previous children
+            while (moleculeGroup.children.length > 0) {
+                moleculeGroup.remove(moleculeGroup.children[0]);
+            }
+
+            // Central Atom
+            const centerGeo = new THREE.SphereGeometry(0.6, 32, 32);
+            const centerMat = new THREE.MeshPhongMaterial({ color: data.centerColor, shininess: 80 });
+            const centerMesh = new THREE.Mesh(centerGeo, centerMat);
+            moleculeGroup.add(centerMesh);
+
+            // Ligands & Bonds
+            data.ligands.forEach(pos => {
+                const ligGeo = new THREE.SphereGeometry(0.4, 32, 32);
+                const ligMat = new THREE.MeshPhongMaterial({ color: data.ligandColor, shininess: 80 });
+                const ligMesh = new THREE.Mesh(ligGeo, ligMat);
+                ligMesh.position.set(pos[0], pos[1], pos[2]);
+                moleculeGroup.add(ligMesh);
+
+                // Cylinder Bond
+                const start = new THREE.Vector3(0, 0, 0);
+                const end = new THREE.Vector3(pos[0], pos[1], pos[2]);
+                const distance = start.distanceTo(end);
+                
+                const bondGeo = new THREE.CylinderGeometry(0.1, 0.1, distance, 16);
+                const bondMat = new THREE.MeshPhongMaterial({ color: 0xcbd5e1 });
+                const bondMesh = new THREE.Mesh(bondGeo, bondMat);
+
+                bondMesh.position.copy(start.clone().add(end).multiplyScalar(0.5));
+                bondMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), end.clone().sub(start).normalize());
+                moleculeGroup.add(bondMesh);
+            });
+
+            // Lone Pairs (PEB clouds)
+            data.pebs.forEach(pos => {
+                const pebGeo = new THREE.SphereGeometry(0.45, 24, 24);
+                const pebMat = new THREE.MeshPhongMaterial({
+                    color: 0xf43f5e,
+                    transparent: true,
+                    opacity: showPEB ? 0.65 : 0.0,
+                    wireframe: true
+                });
+                const pebMesh = new THREE.Mesh(pebGeo, pebMat);
+                pebMesh.position.set(pos[0], pos[1], pos[2]);
+                pebMesh.name = "pebMesh";
+                moleculeGroup.add(pebMesh);
+            });
+
+            // Update Info Panel
+            document.getElementById('molName').innerText = data.name;
+            document.getElementById('molFormula').innerText = data.formula;
+            document.getElementById('molShape').innerText = data.shape;
+            document.getElementById('molAngle').innerText = data.angle;
+            document.getElementById('molPEI').innerText = data.pei;
+            document.getElementById('molPEB').innerText = data.peb;
+            document.getElementById('molPolarity').innerText = data.polarity;
+            document.getElementById('molDesc').innerText = data.desc;
+        }
+
+        function togglePEBVisibility() {
+            showPEB = document.getElementById('togglePEB').checked;
+            moleculeGroup.children.forEach(child => {
+                if (child.name === "pebMesh") {
+                    child.material.opacity = showPEB ? 0.65 : 0.0;
+                }
+            });
+        }
+
+        function toggleAutoRotation() {
+            isAutoRotate = document.getElementById('toggleRotate').checked;
+        }
+
+        /* ---------------------------------------------------
+           LAB SIMULATOR ENGINE (VSEPR LOGIC)
+        --------------------------------------------------- */
+        function updateSimulator() {
+            const pei = parseInt(document.getElementById('simPEIRange').value);
+            const peb = parseInt(document.getElementById('simPEBRange').value);
+
+            document.getElementById('simPEIVal').innerText = pei;
+            document.getElementById('simPEBVal').innerText = peb;
+
+            // Compute VSEPR details
+            let formula = `AX${pei > 1 ? pei : ''}${peb > 0 ? 'E' + (peb > 1 ? peb : '') : ''}`;
+            let geom = "Tidak Dikenal";
+            let angle = "-";
+
+            const key = `${pei}-${peb}`;
+            const map = {
+                '2-0': { g: "Linear", a: "180°" },
+                '3-0': { g: "Trigonal Planar", a: "120°" },
+                '2-1': { g: "Bengkok / Bent (V)", a: "< 120°" },
+                '4-0': { g: "Tetrahedral", a: "109.5°" },
+                '3-1': { g: "Trigonal Piramida", a: "107°" },
+                '2-2': { g: "Bengkok / Bent (V)", a: "104.5°" },
+                '5-0': { g: "Trigonal Bipiramida", a: "90° & 120°" },
+                '4-1': { g: "Tee / Seesaw (Bipiramida)", a: "< 90°" },
+                '3-2': { g: "Bentuk T", a: "90°" },
+                '2-3': { g: "Linear", a: "180°" },
+                '6-0': { g: "Oktahedral", a: "90°" },
+                '5-1': { g: "Piramida Alas Persegi", a: "< 90°" },
+                '4-2': { g: "Segiempat Datar (Square Planar)", a: "90°" }
+            };
+
+            if (map[key]) {
+                geom = map[key].g;
+                angle = map[key].a;
+            }
+
+            document.getElementById('simFormula').innerText = formula;
+            document.getElementById('simGeometry').innerText = geom;
+            document.getElementById('simAngle').innerText = angle;
+            document.getElementById('simResultTitle').innerText = `${geom} (${formula})`;
+
+            renderSvg2D(pei, peb);
+        }
+
+        function renderSvg2D(pei, peb) {
+            const svg = document.getElementById('simSvg');
+            let content = `<circle cx="100" cy="100" r="22" fill="#38bdf8" />`; // Central Atom A
+
+            const total = pei + peb;
+            const radius = 65;
+
+            for (let i = 0; i < pei; i++) {
+                const angleRad = (i * 2 * Math.PI / total) - (Math.PI / 2);
+                const x = 100 + radius * Math.cos(angleRad);
+                const y = 100 + radius * Math.sin(angleRad);
+
+                // Line ikatan
+                content += `<line x1="100" y1="100" x2="${x}" y2="${y}" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round" />`;
+                // Atom ligan X
+                content += `<circle cx="${x}" cy="${y}" r="14" fill="#10b981" />`;
+                content += `<text x="${x}" y="${y+4}" text-anchor="middle" fill="white" font-size="10" font-weight="bold">X</text>`;
+            }
+
+            for (let j = 0; j < peb; j++) {
+                const angleRad = ((pei + j) * 2 * Math.PI / total) - (Math.PI / 2);
+                const x = 100 + (radius - 10) * Math.cos(angleRad);
+                const y = 100 + (radius - 10) * Math.sin(angleRad);
+
+                // PEB cloud dot pair
+                content += `<circle cx="${x-5}" cy="${y}" r="5" fill="#f43f5e" opacity="0.8" />`;
+                content += `<circle cx="${x+5}" cy="${y}" r="5" fill="#f43f5e" opacity="0.8" />`;
+            }
+
+            content += `<text x="100" y="105" text-anchor="middle" fill="white" font-size="12" font-weight="bold">A</text>`;
+            svg.innerHTML = content;
+        }
+
+        /* ---------------------------------------------------
+           QUIZ ENGINE
+        --------------------------------------------------- */
+        const QUIZ_DATA = [
+            {
+                q: "1. Berdasarkan teori VSEPR, molekul yang memiliki rumus AX₄ akan memiliki bentuk geometri...",
+                options: ["Linear", "Trigonal Planar", "Tetrahedral", "Oktahedral"],
+                correct: 2,
+                explain: "AX₄ berarti terdapat 4 pasang elektron ikatan (PEI) dan 0 pasang elektron bebas (PEB), sehingga membentuk geometri Tetrahedral dengan sudut 109.5°."
+            },
+            {
+                q: "2. Mengapa molekul H₂O (air) memiliki sudut ikatan (104.5°) yang lebih kecil daripada CH₄ (109.5°)?",
+                options: [
+                    "Atom H pada air lebih berat daripada atom H pada CH₄",
+                    "Molekul H₂O memiliki 2 Pasangan Elektron Bebas (PEB) yang memberikan tolakan lebih kuat",
+                    "Air bersifat nonpolar",
+                    "Ikatan C-H lebih panjang daripada ikatan O-H"
+                ],
+                correct: 1,
+                explain: "Tolakan PEB - PEB > PEB - PEI > PEI - PEI. Dua pasang elektron bebas pada Oksigen menekan sudut ikatan O-H sehingga menyempit menjadi 104.5°."
+            },
+            {
+                q: "3. Molekul Karbon Dioksida (CO₂) bersifat nonpolar karena...",
+                options: [
+                    "Tidak memiliki ikatan kovalen",
+                    "Bentuk molekulnya simetris (linear) sehingga momen dipolnya saling meniadakan",
+                    "Memiliki banyak Pasangan Elektron Bebas pada atom C",
+                    "Atom C dan O memiliki keelektronegatifan yang sama persis"
+                ],
+                correct: 1,
+                explain: "CO₂ berbentuk linear (AX₂). Walaupun ikatan C=O polar, orientasi yang simetris 180° menyebabkan momen dipol total sama dengan 0 (nonpolar)."
+            },
+            {
+                q: "4. Ikatan antar molekul yang paling kuat yang terjadi antar molekul H₂O adalah...",
+                options: ["Gaya London", "Gaya Dipol-Dipol", "Ikatan Hidrogen", "Ikatan Logam"],
+                correct: 2,
+                explain: "Ikatan Hidrogen terjadi ketika atom H terikat langsung pada atom sangat elektronegatif (F, O, N). Ini merupakan gaya intermolekul paling kuat."
+            },
+            {
+                q: "5. Bentuk molekul dari senyawa NH₃ (Amonia) dengan rumus AX₃E adalah...",
+                options: ["Trigonal Planar", "Trigonal Piramida", "Tetrahedral", "Bengkok"],
+                correct: 1,
+                explain: "NH₃ memiliki 3 PEI dan 1 PEB (AX₃E), sehingga membentuk geometri Trigonal Piramida."
+            }
+        ];
+
+        let currentQIndex = 0;
+        let score = 0;
+        let answered = false;
+
+        function renderQuestion() {
+            answered = false;
+            const q = QUIZ_DATA[currentQIndex];
+
+            document.getElementById('quizProgress').innerText = `${currentQIndex + 1} / ${QUIZ_DATA.length}`;
+            document.getElementById('quizQuestion').innerText = q.q;
+
+            const optionsContainer = document.getElementById('quizOptions');
+            optionsContainer.innerHTML = '';
+
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-4 bg-white hover:bg-indigo-50 border border-slate-200 rounded-2xl font-semibold text-xs md:text-sm text-slate-700 transition flex items-center gap-3 shadow-sm";
+                btn.onclick = () => checkAnswer(idx);
+                btn.innerHTML = `
+                    <span class="w-7 h-7 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs shrink-0 border border-slate-200">${String.fromCharCode(65 + idx)}</span>
+                    <span>${opt}</span>
+                `;
+                optionsContainer.appendChild(btn);
+            });
+
+            const feedbackEl = document.getElementById('quizFeedback');
+            feedbackEl.className = "hidden p-4 rounded-2xl text-xs font-semibold space-y-1";
+            feedbackEl.innerHTML = '';
+
+            document.getElementById('nextBtn').classList.add('hidden');
+        }
+
+        function checkAnswer(chosenIndex) {
+            if (answered) return;
+            answered = true;
+
+            const q = QUIZ_DATA[currentQIndex];
+            const feedbackEl = document.getElementById('quizFeedback');
+            const optionsBtns = document.getElementById('quizOptions').children;
+
+            if (chosenIndex === q.correct) {
+                playSound(880, 'triangle', 0.2); // Success sound
+                score += 20;
+                document.getElementById('quizScore').innerText = score;
+                optionsBtns[chosenIndex].classList.add('bg-emerald-100', 'border-emerald-400', 'text-emerald-900');
+
+                feedbackEl.className = "block p-4 rounded-2xl text-xs bg-emerald-50 border border-emerald-200 text-emerald-900 space-y-1";
+                feedbackEl.innerHTML = `<strong>🎉 Benar Sekali!</strong><p>${q.explain}</p>`;
+            } else {
+                playSound(220, 'sawtooth', 0.25); // Wrong sound
+                optionsBtns[chosenIndex].classList.add('bg-rose-100', 'border-rose-400', 'text-rose-900');
+                optionsBtns[q.correct].classList.add('bg-emerald-100', 'border-emerald-400', 'text-emerald-900');
+
+                feedbackEl.className = "block p-4 rounded-2xl text-xs bg-rose-50 border border-rose-200 text-rose-900 space-y-1";
+                feedbackEl.innerHTML = `<strong>❌ Kurang Tepat!</strong><p>${q.explain}</p>`;
+            }
+
+            document.getElementById('nextBtn').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            playSound(600, 'sine', 0.1);
+            currentQIndex++;
+            if (currentQIndex < QUIZ_DATA.length) {
+                renderQuestion();
+            } else {
+                showQuizResult();
+            }
+        }
+
+        function showQuizResult() {
+            document.getElementById('quizBox').classList.add('hidden');
+            const resultScreen = document.getElementById('quizResultScreen');
+            resultScreen.classList.remove('hidden');
+
+            document.getElementById('finalScoreVal').innerText = score;
+
+            let msg = "Terus belajar dan berlatih ya!";
+            if (score === 100) msg = "Sempurna! Kamu telah menguasai Teori VSEPR & Ikatan Antar Molekul dengan luar biasa! 🎉";
+            else if (score >= 60) msg = "Bagus sekali! Pemahamanmu tentang bentuk molekul sudah sangat baik!";
+
+            document.getElementById('resultFeedback').innerText = msg;
+        }
+
+        function restartQuiz() {
+            playSound(500, 'sine', 0.1);
+            score = 0;
+            currentQIndex = 0;
+            document.getElementById('quizScore').innerText = '0';
+            document.getElementById('quizResultScreen').classList.add('hidden');
+            document.getElementById('quizBox').classList.remove('hidden');
+            renderQuestion();
+        }
+
+        // Initialize App on Window Load
+        window.onload = function() {
+            init3D();
+            updateSimulator();
+            renderQuestion();
+        };
+    </script>
+</body>
+</html>
